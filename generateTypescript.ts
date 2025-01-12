@@ -167,7 +167,14 @@ export function generateTypeScript(
 
   // Generate response type
   const successResponse = operation.responses?.["200"];
-  const responseBody = successResponse?.content?.["application/json"]?.schema;
+  const mediaTypes = successResponse?.content
+    ? Object.keys(successResponse.content)
+    : [];
+  const isJson = mediaTypes.includes("application/json");
+  const responseBody =
+    successResponse?.content?.[isJson ? "application/json" : mediaTypes[0]]
+      ?.schema;
+
   const responseHeaders = successResponse?.headers;
 
   // Generate response headers type with proper typing for known headers
@@ -257,9 +264,9 @@ ${
   });
 
   // Parse response
-  const responseBody = response.headers.get("content-type")?.includes("application/json") 
-    ? await response.json()
-    : await response.text();
+  const responseBody = ${
+    isJson ? "await response.json()" : "await response.text()"
+  };
 
   // Convert headers to typed object
   const responseHeaders: Record<string, string> = {};
