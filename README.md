@@ -1,4 +1,4 @@
-# OpenAPI Transformer
+# A Deno SDK for Any OpenAPI Through URL Imports
 
 Traditional API integration workflows are cumbersome, requiring separate SDKs that bloat your project with hundreds of unnecessary files. I love the deno URL import functionality and decided to make this.
 
