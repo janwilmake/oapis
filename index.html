@@ -146,17 +146,21 @@ import createChatCompletion from "https://oapis.org/ts/chatcompletions/createCha
 
 // Use it without any SDK installation
 const completion = await createChatCompletion({
- headers: { Authorization: "Bearer YOUR_SECRET" }
- body: { 
+    headers: {
+    "X-LLM-API-Key": "YOUR_SECRET",
+    "X-LLM-Base-Path": "https://api.openai.com",
+    },
+    body: {
     messages: [
         { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: "Hello!" }
+        { role: "user", content: "Hello!" },
     ],
-    model: "gpt-4"
-  }
+    model: "gpt-4o",
+    },
 });
 
-console.log(completion.choices[0].message.content);</code></pre>
+console.log(completion.body.choices[0].message.content);
+</code></pre>
                 </div>
             </div>
         </div>

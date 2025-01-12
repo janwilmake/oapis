@@ -93,6 +93,7 @@ function jsonSchemaToTS(schema: JSONSchema, indentLevel = 1): string {
 
 export function generateTypeScript(
   openapi: OpenapiDocument,
+  method: string,
   operation: Operation,
   path: string,
   openapiUrl: string,
@@ -250,7 +251,7 @@ ${
 
   // Make the request
   const response = await fetch(url, {
-    method: "GET",
+    method: "${method.toUpperCase()}",
     ${headerParams.length ? "headers: request.headers," : ""}
     ${requestBody ? "body: JSON.stringify(request.body)," : ""}
   });

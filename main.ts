@@ -30,12 +30,14 @@ const matchOperation = (openapi: OpenapiDocument, url: URL) => {
   // First try direct path match
   const directMatch = openapi.paths[url.pathname]?.get;
   if (directMatch) {
-    return { operation: directMatch, originalPath: url.pathname };
+    return {
+      operation: directMatch,
+      originalPath: url.pathname,
+      method: "GET",
+    };
   }
 
   const normalizedPathname = url.pathname.slice(1) as keyof PathItem;
-
-  console.log("pathname", normalizedPathname);
 
   // Then try operationId match
   for (const [path, pathItem] of Object.entries(openapi.paths)) {
@@ -43,7 +45,6 @@ const matchOperation = (openapi: OpenapiDocument, url: URL) => {
     const matchingMethod = ["get", "post", "put", "patch", "delete"].find(
       (httpMethod) => {
         const operation = pathItem?.[httpMethod as keyof typeof pathItem];
-        console.log({ id: operation?.operationId });
         return operation?.operationId === normalizedPathname;
       },
     );
@@ -52,18 +53,32 @@ const matchOperation = (openapi: OpenapiDocument, url: URL) => {
       return {
         operation: pathItem[matchingMethod as keyof typeof pathItem],
         originalPath: path,
+        method: matchingMethod.toUpperCase(),
       };
     }
   }
 
   // Finally try regex path matching
-  const pathPatterns = Object.keys(openapi.paths).map((path) => ({
-    pattern: convertPathToRegex(path),
-    operation: openapi.paths[path]!.get,
-    originalPath: path,
-  }));
+  const pathPatterns = Object.keys(openapi.paths).map((path) => {
+    const foundMethod = ["get", "post", "delete", "patch", "put"].find(
+      (m) => (openapi.paths[path] as any)?.[m],
+    );
 
-  const match = pathPatterns.find(({ pattern }) => pattern.test(url.pathname));
+    if (!foundMethod) {
+      return;
+    }
+
+    return {
+      pattern: convertPathToRegex(path),
+      operation: (openapi.paths[path] as any)![foundMethod],
+      method: foundMethod?.toUpperCase(),
+      originalPath: path,
+    };
+  });
+
+  const match = pathPatterns
+    .filter((x) => !!x)
+    .find(({ pattern }) => pattern.test(url.pathname));
 
   return match;
 };
@@ -300,6 +315,7 @@ ${routes.map((x) => `- ${x}`).join("\n")}`,
 
         const typescript = generateTypeScript(
           convertedOpenapi,
+          op.method,
           op.operation,
           op.originalPath,
           openapiUrl,
@@ -314,6 +330,7 @@ ${routes.map((x) => `- ${x}`).join("\n")}`,
       if (type === "esm") {
         const typescript = generateTypeScript(
           convertedOpenapi,
+          op.method,
           op.operation,
           op.originalPath,
           openapiUrl,
@@ -338,6 +355,7 @@ ${routes.map((x) => `- ${x}`).join("\n")}`,
       if (type === "cjs") {
         const typescript = generateTypeScript(
           convertedOpenapi,
+          op.method,
           op.operation,
           op.originalPath,
           openapiUrl,
