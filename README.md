@@ -1,6 +1,6 @@
 # OpenAPI Transformer
 
-> NB: Use this at your own risk, there may still be bugs. Not thoroughly tested yet. PRs are welcome! One major limitation right now is that it looks at `openapi.json` at the domain provided ONLY. It won't look elsewhere.
+> NB: Use this at your own risk, works for MOST OpenAPIs, not all. Not thoroughly tested yet. PRs are welcome! One major limitation right now is that it looks at `openapi.json` at the domain provided ONLY. It won't look elsewhere.
 
 Transform any OpenAPI/Swagger endpoint into ready-to-use code and documentation instantly.
 
@@ -30,23 +30,48 @@ Where:
 
 ## Examples
 
-Get TypeScript:
-
-```
-# also works without .com if it's a .com domain
-GET /ts/chatcompletions/chat/completions
-```
-
 Get a man-page style summary:
 
 ```
 GET /summary/chatcompletions.com/getChatCompletions
 ```
 
-Extract response schema from Twitter's tweet lookup:
+Extract response schema:
 
 ```
 GET /response/chatcompletions/chat/completions
+```
+
+Typescript Example (Works with Deno):
+
+```ts
+// Save this as test.ts and run it using `deno run --allow-net --allow-import test.ts`
+
+// Import the chat completion function directly
+import createChatCompletion from "https://oapis.org/ts/chatcompletions/createChatCompletion";
+
+// Use it without any SDK installation
+const completion = await createChatCompletion({
+  headers: {
+    "X-LLM-API-Key": "YOUR_SECRET",
+    "X-LLM-Base-Path": "https://api.deepseek.com/v1",
+  },
+  body: {
+    messages: [
+      { role: "system", content: "You are a helpful assistant." },
+      { role: "user", content: "Hello!" },
+    ],
+    model: "deepseek-chat",
+  },
+});
+
+if (completion.body) {
+  console.log(completion.body.choices[0].message.content);
+  //Hello! How can I assist you today? 😊
+} else {
+  console.log("ERROR", completion.status);
+}
+// This works like a charm!
 ```
 
 ## Value Proposition
