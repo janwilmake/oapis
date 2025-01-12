@@ -1,5 +1,7 @@
 # OpenAPI Transformer
 
+> NB: Use this at your own risk, there may still be bugs. Not thoroughly tested yet. PRs are welcome! One major limitation right now is that it looks at `openapi.json` at the domain provided ONLY. It won't look elsewhere.
+
 Transform any OpenAPI/Swagger endpoint into ready-to-use code and documentation instantly.
 
 ## Overview
@@ -15,7 +17,7 @@ GET https://oapis.org/{type}/{hostname}/{route}
 Where:
 
 - `type`: What you want to generate (ts, openapi, docs, etc.)
-- `hostname`: API hostname (e.g., api.stripe.com)
+- `hostname`: API hostname (e.g., chatcompletions.com)
 - `route`: Specific endpoint or operationId
 
 ## Features
@@ -28,30 +30,24 @@ Where:
 
 ## Examples
 
-Get TypeScript for Stripe's create customer endpoint:
+Get TypeScript:
 
 ```
-GET /ts/stripe.com/v1/customers
+# also works without .com if it's a .com domain
+GET /ts/chatcompletions/chat/completions
 ```
 
-Get a man-page style summary of GitHub's repo API:
+Get a man-page style summary:
 
 ```
-GET /summary/api.github.com/repos/{owner}/{repo}
+GET /summary/chatcompletions.com/getChatCompletions
 ```
 
 Extract response schema from Twitter's tweet lookup:
 
 ```
-GET /response/api.twitter.com/2/tweets/{id}
+GET /response/chatcompletions/chat/completions
 ```
-
-## Response Types
-
-- `application/json` (default)
-- `text/yaml`
-- `text/typescript`
-- `text/javascript`
 
 ## Value Proposition
 
