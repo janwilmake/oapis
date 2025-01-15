@@ -5,6 +5,63 @@ import { generateApiDocs } from "./summary";
 import { OpenapiDocument, PathItem } from "./types";
 import { getOperations } from "./getOperations";
 
+const generateOverview = (openapi: OpenapiDocument): string => {
+  const output: string[] = [];
+
+  // Helper to get server origin from operation or root servers
+  const getServerOrigin = (operation: any, rootServers: any[]): string => {
+    const servers = operation?.servers || rootServers || [];
+    if (servers.length === 0) return "";
+    try {
+      const url = new URL(servers[0].url);
+      return url.origin;
+    } catch (e) {
+      return servers[0].url.split("/")[0];
+    }
+  };
+
+  // Add API general info
+  if (openapi.info) {
+    const { title, version, description } = openapi.info;
+    const serverOrigin = getServerOrigin(undefined, openapi.servers || []);
+    output.push(`${title} v${version} - ${serverOrigin}`);
+    if (description) output.push(description);
+    output.push("");
+  }
+
+  // Process each path and operation
+  if (openapi.paths) {
+    for (const [path, pathItem] of Object.entries(openapi.paths)) {
+      const methods = ["get", "post", "put", "patch", "delete"];
+
+      for (const method of methods) {
+        const operation = pathItem[method as keyof typeof pathItem];
+        if (!operation) continue;
+
+        const serverOrigin = getServerOrigin(operation, openapi.servers || []);
+        const operationId = operation.operationId
+          ? `${operation.operationId}: `
+          : "";
+
+        // Build query parameters string
+        const queryParams = operation.parameters
+          ?.filter((p) => p.in === "query")
+          ?.map((p) => `${p.name}=${p.schema?.type || p.name}`)
+          ?.join("&");
+
+        const queryString = queryParams ? `?${queryParams}` : "";
+
+        output.push(
+          `- ${operationId}${method.toUpperCase()} ${serverOrigin}${path}${queryString} - ${
+            operation.summary || ""
+          }`,
+        );
+      }
+    }
+  }
+
+  return output.join("\n");
+};
 /** NB: Not sure on the ratelimit on this, or logging */
 export const convertSwaggerToOpenapi = async (swaggerUrl: string) => {
   const abortController = new AbortController();
@@ -182,6 +239,7 @@ export default {
         "cjs",
         "esm",
         "operations",
+        "overview",
       ].includes(type) ||
       !hostname
     ) {
@@ -191,6 +249,7 @@ export default {
 Types available:
 - "summary": a man-page style summary of the openapi or the specified route/id
 - "openapi": the openapi with all routes or the specified route/id
+- "overview": overview of an openapi that includes just general info and a few lines per operation
 - "operations": operations in the openapi in a simpler format
 - "request": the JSON schema for only the request
 - "response": the JSON schema for only the response
@@ -271,12 +330,20 @@ Types available:
         });
       }
 
+      if (type === "overview") {
+        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1)); // Remove leading slash
+
+        const overview = generateOverview(subset);
+        return new Response(overview, {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
       if (type === "operations") {
-        const operations = getOperations(
-          convertedOpenapi as any,
-          openapiUrl,
-          openapiUrl,
-        );
+        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1)); // Remove leading slash
+
+        const operations = getOperations(subset as any, openapiUrl, openapiUrl);
 
         if (!operations) {
           return new Response("Could not convert openapi to operations", {
@@ -296,6 +363,7 @@ Types available:
           generateApiDocs(convertedOpenapi as OpenapiDocument),
         );
       }
+
       const operationIds = Object.values(convertedOpenapi.paths)
         .map((item) =>
           [

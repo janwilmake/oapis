@@ -30,6 +30,7 @@
                 "response",
                 "summary",
                 "openapi",
+                "overview",
                 "operations",
                 "ts",
                 "cjs",

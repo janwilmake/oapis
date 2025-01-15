@@ -7,20 +7,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
 
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KISS and Ditch your SDK 😘</title>
-    <meta name="description" content=" Zero-dependency type-safe APIs and API LLM context" />
+    <title>OpenAPI Processing API</title>
+    <meta name="description" content="Process and transform OpenAPI specifications into various formats" />
     <meta name="robots" content="index, follow" />
 
     <!-- Facebook Meta Tags -->
     <meta property="og:url" content="https://oapis.org" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="KISS and Ditch your SDK 😘" />
-    <meta property="og:description" content=" Zero-dependency type-safe APIs and API LLM context" />
+    <meta property="og:title" content="OpenAPI Processing API" />
+    <meta property="og:description" content="Process and transform OpenAPI specifications into various formats" />
     <meta property="og:image" content="https://quickog.com/screenshot/oapis.org" />
-    <meta property="og:image:alt" content=" Zero-dependency type-safe APIs and API LLM context" />
+    <meta property="og:image:alt" content="Process and transform OpenAPI specifications into various formats" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -28,8 +27,8 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta property="twitter:domain" content="oapis.org" />
     <meta property="twitter:url" content="https://oapis.org" />
-    <meta name="twitter:title" content="KISS and Ditch your SDK 😘" />
-    <meta name="twitter:description" content=" Zero-dependency type-safe APIs and API LLM context" />
+    <meta name="twitter:title" content="OpenAPI Processing API" />
+    <meta name="twitter:description" content="Process and transform OpenAPI specifications into various formats" />
     <meta name="twitter:image" content="https://quickog.com/screenshot/oapis.org" />
 </head>
 
@@ -40,10 +39,11 @@
             <div class="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
                 <div class="text-center">
                     <h1 class="text-5xl font-bold text-white sm:text-6xl sm:tracking-tight lg:text-7xl">
-                        KISS and Ditch Your SDK 😘
+                        OpenAPI Processing API
                     </h1>
                     <p class="mt-6 max-w-2xl mx-auto text-xl text-blue-100 font-light">
-                        Zero-dependency type-safe APIs and API LLM context
+                        Transform OpenAPI specifications into multiple formats - TypeScript, JavaScript, Summaries, and
+                        more
                     </p>
                     <div class="mt-10">
                         <a href="https://github.com/janwilmake/oapis"
@@ -59,22 +59,21 @@
                         <a href="openapi.html#/operations/processOpenAPI"
                             class="inline-flex items-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white hover:bg-white hover:text-blue-900 transition-all duration-200">
                             <span class="h-5"></span>
-                            Docs
+                            API Documentation
                         </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Story section -->
+        <!-- Features section -->
         <div class="max-w-7xl mx-auto py-20 px-4 sm:px-6 lg:py-32 lg:px-8">
             <div class="mb-20">
-                <h2 class="text-4xl font-bold text-gray-900 mb-10">Why OAPIS?</h2>
+                <h2 class="text-4xl font-bold text-gray-900 mb-10">API Features</h2>
                 <div class="prose prose-lg max-w-none text-gray-600">
                     <p class="mb-8 text-lg">
-                        Traditional API integration workflows are cumbersome, requiring separate SDKs that bloat your
-                        project with hundreds of unnecessary files. OAPIS takes a different approach, offering
-                        lightweight, targeted solutions for modern development.
+                        Transform your OpenAPI specifications into various formats with our powerful processing API.
+                        Get exactly what you need - from TypeScript types to operation summaries.
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
                         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
@@ -86,10 +85,10 @@
                                             d="M5 13l4 4L19 7"></path>
                                     </svg>
                                 </div>
-                                <h3 class="ml-4 text-lg font-semibold text-gray-900">Zero Dependencies</h3>
+                                <h3 class="ml-4 text-lg font-semibold text-gray-900">Multiple Output Formats</h3>
                             </div>
-                            <p class="text-gray-600">Import single-file TypeScript or JavaScript functions for specific
-                                API operations</p>
+                            <p class="text-gray-600">Generate TypeScript, CommonJS, ES modules, and more from your
+                                OpenAPI specs</p>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                             <div class="flex items-center mb-4">
@@ -100,10 +99,9 @@
                                             d="M5 13l4 4L19 7"></path>
                                     </svg>
                                 </div>
-                                <h3 class="ml-4 text-lg font-semibold text-gray-900">Deno Compatible</h3>
+                                <h3 class="ml-4 text-lg font-semibold text-gray-900">Operation Summaries</h3>
                             </div>
-                            <p class="text-gray-600">Use directly with Deno without any installation or setup required
-                            </p>
+                            <p class="text-gray-600">Get concise summaries of API operations for quick understanding</p>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                             <div class="flex items-center mb-4">
@@ -114,9 +112,9 @@
                                             d="M5 13l4 4L19 7"></path>
                                     </svg>
                                 </div>
-                                <h3 class="ml-4 text-lg font-semibold text-gray-900">Built-in Documentation</h3>
+                                <h3 class="ml-4 text-lg font-semibold text-gray-900">Request/Response Schemas</h3>
                             </div>
-                            <p class="text-gray-600">Generate man-page style documentation for any OpenAPI endpoint</p>
+                            <p class="text-gray-600">Extract specific request and response schemas for any operation</p>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                             <div class="flex items-center mb-4">
@@ -127,10 +125,9 @@
                                             d="M5 13l4 4L19 7"></path>
                                     </svg>
                                 </div>
-                                <h3 class="ml-4 text-lg font-semibold text-gray-900">AI-Ready</h3>
+                                <h3 class="ml-4 text-lg font-semibold text-gray-900">API Overview</h3>
                             </div>
-                            <p class="text-gray-600">Extract specific operations for targeted use in AI tools like
-                                ChatGPT</p>
+                            <p class="text-gray-600">Get a high-level overview of your entire API specification</p>
                         </div>
                     </div>
                 </div>
@@ -148,33 +145,31 @@
                 </div>
                 <div class="p-6">
                     <pre class="language-typescript"><code>
-// Save this as test.ts and run it using `deno run --allow-net --allow-import test.ts`
+// Example: Get TypeScript types for a specific API operation
 
-// Import the chat completion function directly
-import createChatCompletion from "https://oapis.org/ts/chatcompletions/createChatCompletion";
-
-// Use it without any SDK installation
-const completion = await createChatCompletion({
-    headers: {
-    "X-LLM-API-Key": "YOUR_SECRET",
-    "X-LLM-Base-Path": "https://api.deepseek.com/v1",
-    },
-    body: {
-    messages: [
-        { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: "Hello!" },
-    ],
-    model: "deepseek-chat",
-    },
+const response = await fetch('https://oapis.org/ts/api.example/getUserProfile', {
+  headers: {
+    'Accept': 'text/typescript'
+  }
 });
 
-if (completion.body) {
-    console.log(completion.body.choices[0].message.content);
-    //Hello! How can I assist you today? 😊
-} else {
-    console.log("ERROR", completion.status);
+// Get the TypeScript interface for the operation
+const tsInterface = await response.text();
+console.log(tsInterface);
+
+// Example output:
+interface GetUserProfileRequest {
+  userId: string;
 }
-// This works like a charm!
+
+interface GetUserProfileResponse {
+  name: string;
+  email: string;
+  profile: {
+    bio: string;
+    avatar: string;
+  }
+}
 </code></pre>
                 </div>
             </div>
@@ -196,7 +191,7 @@ if (completion.body) {
                 </div>
                 <div class="mt-8 md:mt-0 md:order-1">
                     <p class="text-center text-base text-gray-500">
-                        Built with precision for the modern API ecosystem
+                        Transform your OpenAPI specifications with precision
                     </p>
                 </div>
             </div>
