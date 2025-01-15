@@ -68,6 +68,7 @@ export interface OpenapiDocument {
 
 export interface SchemaObject {
   type: string;
+  pattern?: string;
   properties?: { [key: string]: SchemaObject };
   items?: SchemaObject;
   required?: string[];

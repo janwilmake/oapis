@@ -1,8 +1,12 @@
+import { OpenapiParameterObject, OpenapiResponseObject } from "./getOperations";
 import { SchemaObject, OpenapiDocument } from "./types";
 
+// Helper function to format schema with improved type handling
 function formatSchema(schema: SchemaObject, indent: number = 0): string {
   const indentStr = "  ".repeat(indent);
   let output = "";
+
+  if (!schema) return "any";
 
   if (schema.type === "object" && schema.properties) {
     output += "{\n";
@@ -17,10 +21,16 @@ function formatSchema(schema: SchemaObject, indent: number = 0): string {
       if (prop.type === "object" && prop.properties) {
         output += formatSchema(prop, indent + 1);
       } else if (prop.type === "array" && prop.items) {
-        output += `${prop.type}<${prop.items.type}>`;
+        output += `${prop.type}<`;
         if (prop.items.type === "object" && prop.items.properties) {
-          output += " of " + formatSchema(prop.items, indent + 1);
+          output += formatSchema(prop.items, indent + 1);
+        } else {
+          output += prop.items.type;
+          if (prop.items.enum) {
+            output += ` (one of: ${prop.items.enum.join(", ")})`;
+          }
         }
+        output += ">";
       } else {
         output += prop.type;
         if (prop.enum) {
@@ -29,18 +39,32 @@ function formatSchema(schema: SchemaObject, indent: number = 0): string {
         if (prop.format) {
           output += ` (${prop.format})`;
         }
+        if (prop.pattern) {
+          output += ` (pattern: ${prop.pattern})`;
+        }
+        if (prop.minimum !== undefined || prop.maximum !== undefined) {
+          output += ` (range: ${prop.minimum ?? "-∞"} to ${
+            prop.maximum ?? "∞"
+          })`;
+        }
         if (prop.default !== undefined) {
-          output += ` = ${prop.default}`;
+          output += ` = ${JSON.stringify(prop.default)}`;
         }
       }
       output += ",\n";
     }
     output += `${indentStr}}`;
   } else if (schema.type === "array" && schema.items) {
-    output += `array<${schema.items.type}>`;
+    output += `array<`;
     if (schema.items.type === "object" && schema.items.properties) {
-      output += " of " + formatSchema(schema.items, indent);
+      output += formatSchema(schema.items, indent);
+    } else {
+      output += schema.items.type;
+      if (schema.items.enum) {
+        output += ` (one of: ${schema.items.enum.join(", ")})`;
+      }
     }
+    output += ">";
   } else {
     output += schema.type;
     if (schema.enum) {
@@ -54,131 +78,236 @@ function formatSchema(schema: SchemaObject, indent: number = 0): string {
   return output;
 }
 
-export function generateManPage(doc: OpenapiDocument): string {
-  let manPage = "";
+// Helper function to format security requirements
+function formatSecurity(security: Record<string, string[]>[]): string {
+  if (!security || security.length === 0) return "";
 
-  // NAME section
-  manPage += `# NAME\n\n`;
-  manPage += `${doc.info.title} - API Command Line Interface\n\n`;
-
-  // DESCRIPTION section
-  if (doc.info.description) {
-    manPage += `# DESCRIPTION\n\n`;
-    manPage += `${doc.info.description}\n\n`;
-  }
-
-  // SYNOPSIS section
-  manPage += `# SYNOPSIS\n\n`;
-  manPage += `npx oapis <domain> <operation> [options...]\n\n`;
-
-  // OPERATIONS section
-  manPage += `# OPERATIONS\n\n`;
-
-  for (const [path, pathItem] of Object.entries(doc.paths)) {
-    for (const [method, operation] of Object.entries(pathItem)) {
-      if (!operation || !operation.operationId) continue;
-
-      manPage += `## ${operation.operationId}\n\n`;
-
-      if (operation.summary) {
-        manPage += `${operation.summary}\n\n`;
+  let output = "### Security\n\n";
+  security.forEach((scheme) => {
+    Object.entries(scheme).forEach(([name, scopes]) => {
+      output += `* ${name}`;
+      if (scopes.length > 0) {
+        output += ` (scopes: ${scopes.join(", ")})`;
       }
+      output += "\n";
+    });
+  });
+  return output + "\n";
+}
 
-      if (operation.description) {
-        manPage += `${operation.description}\n\n`;
+// Helper function to format operation parameters
+function formatParameters(parameters: OpenapiParameterObject[]): string {
+  if (!parameters || parameters.length === 0) return "";
+
+  let output = "### Parameters\n\n";
+  const groupedParams = parameters.reduce((acc, param) => {
+    acc[param.in] = acc[param.in] || [];
+    acc[param.in].push(param);
+    return acc;
+  }, {} as Record<string, OpenapiParameterObject[]>);
+
+  for (const [location, params] of Object.entries(groupedParams)) {
+    output += `#### ${
+      location.charAt(0).toUpperCase() + location.slice(1)
+    } Parameters\n\n`;
+    for (const param of params) {
+      output += `* \`${param.name}\`${param.required ? " (Required)" : ""}`;
+      if (param.description) {
+        output += `\n  ${param.description}`;
       }
-
-      // Command syntax
-      manPage += `\`\`\`\n${operation.operationId}`;
-
-      // Required parameters
-      const requiredParams = (operation.parameters || [])
-        .filter((p) => p.required)
-        .map((p) => `<${p.name}>`)
-        .join(" ");
-
-      if (requiredParams) {
-        manPage += ` ${requiredParams}`;
+      if (param.schema) {
+        output += `\n  Type: ${formatSchema(param.schema)}`;
       }
-
-      // Optional parameters
-      const optionalParams = (operation.parameters || [])
-        .filter((p) => !p.required)
-        .map((p) => `[--${p.name}]`)
-        .join(" ");
-
-      if (optionalParams) {
-        manPage += ` ${optionalParams}`;
+      if (param.example) {
+        output += `\n  Example: ${JSON.stringify(param.example)}`;
       }
-
-      manPage += `\n\`\`\`\n\n`;
-
-      // Parameters section if any exist
-      if (operation.parameters && operation.parameters.length > 0) {
-        manPage += `### Parameters\n\n`;
-
-        for (const param of operation.parameters) {
-          manPage += `* \`${param.name}\` (${param.in})`;
-          manPage += param.required ? " (Required)" : " (Optional)";
-          if (param.description) {
-            manPage += `\n  ${param.description}`;
-          }
-          if (param.schema?.enum) {
-            manPage += `\n  Allowed values: ${param.schema.enum.join(", ")}`;
-          }
-          if (param.schema?.default !== undefined) {
-            manPage += `\n  Default: ${param.schema.default}`;
-          }
-          manPage += "\n\n";
-        }
-      }
-
-      // Request body section if it exists
-      if (operation.requestBody) {
-        manPage += `### Request Body\n\n`;
-        const contentType = Object.keys(operation.requestBody.content)[0];
-        const schema = operation.requestBody.content[contentType].schema;
-
-        manPage += `Content-Type: ${contentType}\n\n`;
-        manPage += `Schema:\n\`\`\`typescript\n${formatSchema(
-          schema,
-        )}\n\`\`\`\n\n`;
-      }
-
-      // Response section
-      manPage += `### Responses\n\n`;
-      for (const [code, response] of Object.entries(operation.responses)) {
-        manPage += `* ${code}: ${
-          response.description || "No description provided"
-        }\n`;
-
-        // Add response schema if available
-        if (response.content) {
-          const contentType = Object.keys(response.content)[0];
-          const schema = response.content[contentType].schema;
-
-          manPage += `\n  Content-Type: ${contentType}\n\n`;
-          manPage += `  Schema:\n  \`\`\`typescript\n  ${formatSchema(
-            schema,
-          ).replace(/\n/g, "\n  ")}\n  \`\`\`\n\n`;
-        } else {
-          manPage += "\n";
-        }
-      }
+      output += "\n\n";
     }
   }
 
-  // Examples section
-  manPage += `# EXAMPLES\n\n`;
-  manPage += `Get help for a specific operation:\n`;
-  manPage += `\`\`\`\nnpx oapis example.com help <operationId>\n\`\`\`\n\n`;
+  return output;
+}
 
-  // Environment section
-  manPage += `# ENVIRONMENT\n\n`;
-  manPage += `* \`OAPIS_API_KEY\`: API key for authentication\n`;
-  manPage += `* \`OAPIS_BASE_URL\`: Override the default API base URL\n\n`;
+// Helper function to format operation responses
+function formatResponses(
+  responses: Record<string, OpenapiResponseObject>,
+): string {
+  let output = "### Responses\n\n";
 
-  return manPage;
+  for (const [code, response] of Object.entries(responses)) {
+    const statusText =
+      {
+        "200": "OK",
+        "201": "Created",
+        "204": "No Content",
+        "400": "Bad Request",
+        "401": "Unauthorized",
+        "403": "Forbidden",
+        "404": "Not Found",
+        "500": "Internal Server Error",
+      }[code] || "";
+
+    output += `* **${code}** ${statusText}: ${
+      response.description || "No description"
+    }\n`;
+
+    if (response.content) {
+      for (const [contentType, content] of Object.entries(response.content)) {
+        if (content.schema) {
+          output += `\n  Content-Type: \`${contentType}\`\n\n`;
+          output += `  Schema:\n  \`\`\`typescript\n  ${formatSchema(
+            content.schema,
+          ).replace(/\n/g, "\n  ")}\n  \`\`\`\n`;
+        }
+        if (content.examples) {
+          output += `\n  Examples:\n`;
+          for (const [name, example] of Object.entries(content.examples)) {
+            output += `  * ${name}:\n  \`\`\`json\n  ${JSON.stringify(
+              example.value,
+              null,
+              2,
+            ).replace(/\n/g, "\n  ")}\n  \`\`\`\n`;
+          }
+        }
+      }
+    }
+    output += "\n";
+  }
+
+  return output;
+}
+
+// Main function to generate documentation
+export function generateApiDocs(doc: OpenapiDocument): string {
+  let output = "";
+
+  // Title and Info
+  output += `# ${doc.info.title} ${doc.info.version}\n\n`;
+  if (doc.info.description) {
+    output += `${doc.info.description}\n\n`;
+  }
+
+  // Server information
+  if (doc.servers && doc.servers.length > 0) {
+    output += "## Servers\n\n";
+    doc.servers.forEach((server) => {
+      output += `* ${server.url}${
+        server.description ? ` - ${server.description}` : ""
+      }\n`;
+    });
+    output += "\n";
+  }
+
+  // Authentication
+  if (doc.components?.securitySchemes) {
+    output += "## Authentication\n\n";
+    for (const [name, scheme] of Object.entries(
+      doc.components.securitySchemes,
+    )) {
+      output += `### ${name}\n\n`;
+      output += `Type: ${scheme.type}\n`;
+      if (scheme.description) {
+        output += `\n${scheme.description}\n`;
+      }
+      if (scheme.type === "oauth2" && scheme.flows) {
+        output += "\nAvailable flows:\n\n";
+        for (const [flowType, flow] of Object.entries(scheme.flows)) {
+          if (flow) {
+            output += `* ${flowType}\n`;
+            output += `  * Authorization URL: ${flow.authorizationUrl}\n`;
+            output += `  * Token URL: ${flow.tokenUrl}\n`;
+            if (flow.scopes) {
+              output += "  * Scopes:\n";
+              for (const [scope, desc] of Object.entries(flow.scopes)) {
+                output += `    * ${scope}: ${desc}\n`;
+              }
+            }
+          }
+        }
+      }
+      output += "\n";
+    }
+  }
+
+  // Endpoints
+  output += "## Endpoints\n\n";
+
+  // Group endpoints by tags
+  const taggedOperations: Record<
+    string,
+    { path: string; method: string; operation: OperationObject }[]
+  > = {};
+
+  for (const [path, pathItem] of Object.entries(doc.paths)) {
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (!operation || typeof operation !== "object") continue;
+
+      const tags = operation.tags || ["default"];
+      tags.forEach((tag) => {
+        taggedOperations[tag] = taggedOperations[tag] || [];
+        taggedOperations[tag].push({ path, method, operation });
+      });
+    }
+  }
+
+  // Generate documentation for each tag group
+  for (const [tag, operations] of Object.entries(taggedOperations)) {
+    output += `### ${tag}\n\n`;
+
+    for (const { path, method, operation } of operations) {
+      output += `#### ${
+        operation.operationId || `${method.toUpperCase()} ${path}`
+      }\n\n`;
+
+      if (operation.summary) {
+        output += `${operation.summary}\n\n`;
+      }
+      if (operation.description) {
+        output += `${operation.description}\n\n`;
+      }
+
+      output += `\`${method.toUpperCase()} ${path}\`\n\n`;
+
+      if (operation.security) {
+        output += formatSecurity(operation.security);
+      }
+
+      if (operation.parameters) {
+        output += formatParameters(operation.parameters);
+      }
+
+      if (operation.requestBody) {
+        output += "### Request Body\n\n";
+        for (const [contentType, content] of Object.entries(
+          operation.requestBody.content,
+        )) {
+          output += `Content-Type: \`${contentType}\`\n\n`;
+          if (content.schema) {
+            output += `Schema:\n\`\`\`typescript\n${formatSchema(
+              content.schema,
+            )}\n\`\`\`\n\n`;
+          }
+        }
+      }
+
+      if (operation.responses) {
+        output += formatResponses(operation.responses);
+      }
+
+      output += "---\n\n";
+    }
+  }
+
+  // Models/Schemas
+  if (doc.components?.schemas) {
+    output += "## Models\n\n";
+    for (const [name, schema] of Object.entries(doc.components.schemas)) {
+      output += `### ${name}\n\n`;
+      output += `\`\`\`typescript\n${formatSchema(schema)}\n\`\`\`\n\n`;
+    }
+  }
+
+  return output;
 }
 
 // Example usage
@@ -320,4 +449,4 @@ const sampleDoc: OpenapiDocument = {
 };
 
 // Generate man page
-//console.log(generateManPage(sampleDoc));
+console.log(generateApiDocs(sampleDoc));
