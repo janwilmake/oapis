@@ -30,6 +30,7 @@
                 "response",
                 "summary",
                 "openapi",
+                "operations",
                 "ts",
                 "cjs",
                 "esm"
