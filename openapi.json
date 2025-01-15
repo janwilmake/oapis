@@ -50,7 +50,7 @@
           {
             "name": "idOrRoute",
             "in": "path",
-            "required": true,
+            "required": false,
             "description": "Operation ID or route path",
             "schema": {
               "type": "string",

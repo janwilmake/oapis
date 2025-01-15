@@ -3,6 +3,7 @@ import { generateTypeScript } from "./generateTypescript";
 import { deref } from "./deref";
 import { generateManPage } from "./summary";
 import { OpenapiDocument, PathItem } from "./types";
+import { getOperations } from "./getOperations";
 
 /** NB: Not sure on the ratelimit on this, or logging */
 export const convertSwaggerToOpenapi = async (swaggerUrl: string) => {
@@ -180,6 +181,7 @@ export default {
         "ts",
         "cjs",
         "esm",
+        "operations",
       ].includes(type) ||
       !hostname
     ) {
@@ -189,6 +191,7 @@ export default {
 Types available:
 - "summary": a man-page style summary of the openapi or the specified route/id
 - "openapi": the openapi with all routes or the specified route/id
+- "operations": operations in the openapi in a simpler format
 - "request": the JSON schema for only the request
 - "response": the JSON schema for only the response
 - "ts": a typescript function to fetch this api
@@ -267,9 +270,28 @@ Types available:
           headers: { "Content-Type": "application/json" },
         });
       }
+
+      if (type === "operations") {
+        const operations = getOperations(
+          convertedOpenapi as any,
+          openapiUrl,
+          openapiUrl,
+        );
+
+        if (!operations) {
+          return new Response("Could not convert openapi to operations", {
+            status: 500,
+          });
+        }
+        return new Response(JSON.stringify(operations, undefined, 2), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
       if (type === "summary") {
         // TODO; dereference first becuase it may miss things otherwise. now it somehow fails when doing that, it seems some things go missing when dereferencing
-        const dereferenced = await deref(convertedOpenapi, openapiUrl);
+        //  const dereferenced = await deref(convertedOpenapi, openapiUrl);
         return new Response(
           generateManPage(convertedOpenapi as OpenapiDocument),
         );
