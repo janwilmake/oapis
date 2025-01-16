@@ -19,14 +19,8 @@ Types available:
 - "esm": a ecmascript module to fetch this api
 - "cjs": a common js function to fetch this api
 
-TODO:
-
-- Find back my hardcoded dataset of openapis and create a kv from that that goes from server to the location. Use this as JSON as a fallback if the server openapi wasn't found - 🔥SIMPLICITY🧡
-
-- Get all https://openapi.forgithub.com/janwilmake/[repo]/overview
-
 > [!IMPORTANT]
-> OLD README BELOW
+> OLD README BELOW, which showcases just the ts generation
 
 # A Deno SDK for Any OpenAPI Through URL Imports
 

@@ -5,7 +5,10 @@ import { generateApiDocs } from "./summary";
 import { OpenapiDocument, PathItem } from "./types";
 import { getOperations } from "./getOperations";
 
-const generateOverview = (openapi: OpenapiDocument): string => {
+const generateOverview = (
+  hostname: string,
+  openapi: OpenapiDocument,
+): string => {
   const output: string[] = [];
 
   // Helper to get server origin from operation or root servers
@@ -52,12 +55,17 @@ const generateOverview = (openapi: OpenapiDocument): string => {
         const queryString = queryParams ? `?${queryParams}` : "";
 
         output.push(
-          `- ${operationId}${method.toUpperCase()} ${serverOrigin}${path}${queryString} - ${
+          `- ${operationId}${method.toUpperCase()} ${path}${queryString} - ${
             operation.summary || ""
           }`,
         );
       }
     }
+
+    output.push("");
+    output.push(
+      `For more detailed information of an operation, visit https://oapis.org/summary/${hostname}/[idOrRoute]`,
+    );
   }
 
   return output.join("\n");
@@ -220,6 +228,90 @@ const getOpenAPISubset = (openapi: OpenapiDocument, route: string) => {
   };
 };
 
+const fetchAsKey = async (domain: string) => {
+  const urlResponse = await fetch(`https://openapisearch.com/url/${domain}`);
+  if (!urlResponse.ok) {
+    return;
+  }
+
+  const url = await urlResponse.text();
+
+  const openapiResponse = await fetch(url);
+
+  if (!openapiResponse.ok) {
+    return;
+  }
+
+  const text = await openapiResponse.text();
+
+  const json = tryParseJson(text);
+
+  const realHostname = new URL(url).hostname;
+
+  if (json && (json as any).paths) {
+    return {
+      openapiUrl: url,
+      openapiJson: json as OpenapiDocument,
+      realHostname,
+    };
+  }
+
+  const yamlJson = tryParseYamlToJson(text);
+
+  if (yamlJson && (yamlJson as any).paths) {
+    return {
+      openapiUrl: url,
+      openapiJson: yamlJson as OpenapiDocument,
+      realHostname,
+    };
+  }
+
+  return;
+};
+
+const fetchAsHostname = async (hostname: string) => {
+  const realHostname =
+    hostname.split(".").length === 1 ? hostname + ".com" : hostname;
+
+  const openapiUrl = tryParseUrl(`https://${realHostname}/openapi.json`);
+
+  if (!openapiUrl) {
+    return;
+  }
+
+  const openapiJson = await fetch(openapiUrl)
+    .then(async (res) => {
+      if (!res.ok) {
+        return;
+      }
+
+      const text = await res.text();
+
+      const json = tryParseJson(text);
+
+      if (json && (json as any).paths) {
+        return json as OpenapiDocument;
+      }
+
+      const yamlJson = tryParseYamlToJson(text);
+
+      if (yamlJson && (yamlJson as any).paths) {
+        return yamlJson as OpenapiDocument;
+      }
+
+      return;
+    })
+    .catch((e) => {
+      return undefined;
+    });
+
+  if (!openapiJson) {
+    return;
+  }
+
+  return { openapiUrl, openapiJson, realHostname };
+};
+
 export default {
   fetch: async (request: Request) => {
     const url = new URL(request.url);
@@ -244,47 +336,46 @@ export default {
       !hostname
     ) {
       return new Response(
-        `Please use the format [type]/[hostname]/[idOrRoute]`,
+        `Please use the format /[type]/[hostname]/[idOrRoute]`,
         { status: 400 },
       );
     }
 
-    const realHostname =
-      hostname.split(".").length === 1 ? hostname + ".com" : hostname;
+    const res = await new Promise<
+      | undefined
+      | {
+          openapiUrl: string;
+          openapiJson: OpenapiDocument;
+          realHostname: string;
+        }
+    >((resolve) => {
+      const p1 = fetchAsKey(hostname);
 
-    const openapiUrl = tryParseUrl(`https://${realHostname}/openapi.json`);
+      const p2 = fetchAsHostname(hostname);
 
-    if (!openapiUrl) {
-      return new Response("Invalid hostname", { status: 400 });
+      p1.then(async (result) => {
+        if (result) {
+          resolve(result);
+        } else if (!(await p2)) {
+          resolve(undefined);
+        }
+      });
+      p2.then(async (result) => {
+        if (result) {
+          resolve(result);
+        } else if (!(await p1)) {
+          resolve(undefined);
+        }
+      });
+    });
+
+    if (!res) {
+      return new Response("could not parse OpenAPI", { status: 404 });
     }
 
+    const { openapiJson, openapiUrl, realHostname } = res;
+
     try {
-      const openapiJson = await fetch(openapiUrl)
-        .then(async (res) => {
-          if (!res.ok) {
-            return;
-          }
-
-          const text = await res.text();
-
-          const json = tryParseJson(text);
-
-          if (json && (json as any).paths) {
-            return json as OpenapiDocument;
-          }
-
-          const yamlJson = tryParseYamlToJson(text);
-
-          if (yamlJson && (yamlJson as any).paths) {
-            return yamlJson as OpenapiDocument;
-          }
-
-          return;
-        })
-        .catch((e) => {
-          return undefined;
-        });
-
       if (!openapiJson) {
         return new Response("could not parse OpenAPI", { status: 404 });
       }
@@ -322,7 +413,7 @@ export default {
       if (type === "overview") {
         const subset = getOpenAPISubset(convertedOpenapi, route.slice(1)); // Remove leading slash
 
-        const overview = generateOverview(subset);
+        const overview = generateOverview(hostname, subset);
         return new Response(overview, {
           status: 200,
           headers: { "content-type": "application/json" },
@@ -346,11 +437,12 @@ export default {
       }
 
       if (type === "summary") {
+        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1));
+
         // TODO; dereference first becuase it may miss things otherwise. now it somehow fails when doing that, it seems some things go missing when dereferencing
+
         //  const dereferenced = await deref(convertedOpenapi, openapiUrl);
-        return new Response(
-          generateApiDocs(convertedOpenapi as OpenapiDocument),
-        );
+        return new Response(generateApiDocs(subset as OpenapiDocument));
       }
 
       const operationIds = Object.values(convertedOpenapi.paths)
