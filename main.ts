@@ -12,6 +12,11 @@ const generateOverview = (
 ): string => {
   const output: string[] = [];
 
+  output.push(
+    `Below is an overview of the ${hostname} openapi in simple language. For more detailed information of an endpoint, visit https://oapis.org/summary/${hostname}/[idOrRoute]`,
+  );
+  output.push("");
+
   // Helper to get server origin from operation or root servers
   const getServerOrigin = (operation: any, rootServers: any[]): string => {
     const servers = operation?.servers || rootServers || [];
@@ -80,11 +85,6 @@ const generateOverview = (
         ? `- ${item.operationId}${item.summaryPart}`
         : `- ${item.operationId}${item.pathPart}${item.summaryPart}`,
     ),
-  );
-
-  output.push("");
-  output.push(
-    `For more detailed information of an operation, visit https://oapis.org/summary/${hostname}/[idOrRoute]`,
   );
 
   return output.join("\n");
@@ -375,7 +375,7 @@ export default {
         const overview = generateOverview(hostname, subset);
         return new Response(overview, {
           status: 200,
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...corsHeaders },
         });
       }
 
