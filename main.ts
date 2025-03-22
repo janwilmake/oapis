@@ -32,6 +32,12 @@ const generateOverview = (
     output.push("");
   }
 
+  const items: {
+    operationId: string;
+    pathPart: string;
+    summaryPart: string;
+  }[] = [];
+
   // Process each path and operation
   if (openapi.paths) {
     for (const [path, pathItem] of Object.entries(openapi.paths)) {
@@ -43,7 +49,7 @@ const generateOverview = (
 
         const serverOrigin = getServerOrigin(operation, openapi.servers || []);
         const operationId = operation.operationId
-          ? `${operation.operationId}: `
+          ? `${operation.operationId}`
           : "";
 
         // Build query parameters string
@@ -53,20 +59,32 @@ const generateOverview = (
           ?.join("&");
 
         const queryString = queryParams ? `?${queryParams}` : "";
+        const summaryPart = operation.summary
+          ? ` - ${operation.summary || ""}`
+          : "";
 
-        output.push(
-          `- ${operationId}${method.toUpperCase()} ${path}${queryString} - ${
-            operation.summary || ""
-          }`,
-        );
+        const pathPart = `${method.toUpperCase()} ${path}${queryString}`;
+
+        items.push({ operationId, pathPart, summaryPart });
       }
     }
-
-    output.push("");
-    output.push(
-      `For more detailed information of an operation, visit https://oapis.org/summary/${hostname}/[idOrRoute]`,
-    );
   }
+
+  // 10k+ tokens
+  const isLong = JSON.stringify(items).length > 10000 * 5;
+
+  output.push(
+    ...items.map((item) =>
+      isLong
+        ? `- ${item.operationId}${item.summaryPart}`
+        : `- ${item.operationId}${item.pathPart}${item.summaryPart}`,
+    ),
+  );
+
+  output.push("");
+  output.push(
+    `For more detailed information of an operation, visit https://oapis.org/summary/${hostname}/[idOrRoute]`,
+  );
 
   return output.join("\n");
 };
@@ -222,94 +240,46 @@ const getOpenAPISubset = (openapi: OpenapiDocument, route: string) => {
     }
   }
 
+  const { webhooks, ...rest } = openapi;
+
   return {
-    ...openapi,
+    ...rest,
     paths: matchingPaths,
   };
 };
 
-const fetchAsKey = async (domain: string) => {
-  const urlResponse = await fetch(`https://openapisearch.com/url/${domain}`);
+const searchOpenapi = async (providerId: string) => {
+  const urlResponse = await fetch(
+    `https://openapisearch.com/redirect/${providerId}`,
+    { redirect: "follow" },
+  );
   if (!urlResponse.ok) {
+    console.log("Not ok", providerId);
+    return;
+  }
+  const openapiUrl = urlResponse.url;
+
+  const res = await fetch(openapiUrl);
+  if (!res.ok) {
+    console.log("Not ok", openapiUrl);
     return;
   }
 
-  const url = await urlResponse.text();
+  const text = await res.text();
 
-  const openapiResponse = await fetch(url);
+  let json = undefined;
 
-  if (!openapiResponse.ok) {
-    return;
-  }
-
-  const text = await openapiResponse.text();
-
-  const json = tryParseJson(text);
-
-  const realHostname = new URL(url).hostname;
-
-  if (json && (json as any).paths) {
-    return {
-      openapiUrl: url,
-      openapiJson: json as OpenapiDocument,
-      realHostname,
-    };
-  }
-
-  const yamlJson = tryParseYamlToJson(text);
-
-  if (yamlJson && (yamlJson as any).paths) {
-    return {
-      openapiUrl: url,
-      openapiJson: yamlJson as OpenapiDocument,
-      realHostname,
-    };
-  }
-
-  return;
-};
-
-const fetchAsHostname = async (hostname: string) => {
-  const realHostname =
-    hostname.split(".").length === 1 ? hostname + ".com" : hostname;
-
-  const openapiUrl = tryParseUrl(`https://${realHostname}/openapi.json`);
-
-  if (!openapiUrl) {
-    return;
-  }
-
-  const openapiJson = await fetch(openapiUrl)
-    .then(async (res) => {
-      if (!res.ok) {
-        return;
-      }
-
-      const text = await res.text();
-
-      const json = tryParseJson(text);
-
-      if (json && (json as any).paths) {
-        return json as OpenapiDocument;
-      }
-
-      const yamlJson = tryParseYamlToJson(text);
-
-      if (yamlJson && (yamlJson as any).paths) {
-        return yamlJson as OpenapiDocument;
-      }
-
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    try {
+      json = load(text);
+    } catch (e) {
       return;
-    })
-    .catch((e) => {
-      return undefined;
-    });
-
-  if (!openapiJson) {
-    return;
+    }
   }
-
-  return { openapiUrl, openapiJson, realHostname };
+  const basePath = json.servers?.[0]?.url || new URL(openapiUrl).hostname;
+  return { openapiUrl, openapiJson: json, basePath };
 };
 
 export default {
@@ -332,6 +302,7 @@ export default {
         "esm",
         "operations",
         "overview",
+        "slop",
       ].includes(type) ||
       !hostname
     ) {
@@ -341,45 +312,20 @@ export default {
       );
     }
 
-    const res = await new Promise<
-      | undefined
-      | {
-          openapiUrl: string;
-          openapiJson: OpenapiDocument;
-          realHostname: string;
-        }
-    >((resolve) => {
-      const p1 = fetchAsKey(hostname);
+    const openapi = await searchOpenapi(hostname);
 
-      const p2 = fetchAsHostname(hostname);
-
-      p1.then(async (result) => {
-        if (result) {
-          resolve(result);
-        } else if (!(await p2)) {
-          resolve(undefined);
-        }
-      });
-      p2.then(async (result) => {
-        if (result) {
-          resolve(result);
-        } else if (!(await p1)) {
-          resolve(undefined);
-        }
-      });
-    });
-
-    if (!res) {
-      return new Response("could not parse OpenAPI", { status: 404 });
+    if (!openapi) {
+      return new Response("No OpenAPI found at " + hostname, { status: 404 });
     }
 
-    const { openapiJson, openapiUrl, realHostname } = res;
+    console.log("HAS OAS");
+
+    const { openapiUrl, openapiJson, basePath } = openapi;
+    if (!openapiJson) {
+      return new Response("No OpenAPI JSON found", { status: 404 });
+    }
 
     try {
-      if (!openapiJson) {
-        return new Response("could not parse OpenAPI", { status: 404 });
-      }
-
       const isSwagger =
         (openapiJson as any)?.swagger ||
         !openapiJson?.openapi ||
@@ -387,7 +333,7 @@ export default {
 
       const convertedOpenapi = isSwagger
         ? await convertSwaggerToOpenapi(openapiUrl)
-        : openapiJson;
+        : (openapiJson as OpenapiDocument);
 
       if (!convertedOpenapi?.openapi) {
         return new Response("conversion failed", { status: 404 });
@@ -410,7 +356,7 @@ export default {
         });
       }
 
-      if (type === "overview") {
+      if (type === "overview" || type === "slop") {
         const subset = getOpenAPISubset(convertedOpenapi, route.slice(1)); // Remove leading slash
 
         const overview = generateOverview(hostname, subset);
@@ -437,6 +383,7 @@ export default {
       }
 
       if (type === "summary") {
+        console.log("OK HERE");
         const subset = getOpenAPISubset(convertedOpenapi, route.slice(1));
 
         // TODO; dereference first becuase it may miss things otherwise. now it somehow fails when doing that, it seems some things go missing when dereferencing
@@ -461,7 +408,7 @@ export default {
       const routes = Object.keys(convertedOpenapi.paths);
 
       // Handle other types
-      const fullRequestUrl = `https://${realHostname}${route}`;
+      const fullRequestUrl = `https://${basePath}${route}`;
       const op = matchOperation(convertedOpenapi, new URL(fullRequestUrl));
       console.log({ op });
       if (!op?.operation) {

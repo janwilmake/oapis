@@ -157,7 +157,7 @@ function formatResponses(
           output += `\n  Content-Type: \`${contentType}\`\n\n`;
           output += `  Schema:\n  \`\`\`typescript\n  ${formatSchema(
             content.schema,
-          ).replace(/\n/g, "\n  ")}\n  \`\`\`\n`;
+          )?.replace(/\n/g, "\n  ")}\n  \`\`\`\n`;
         }
         if (content.examples) {
           output += `\n  Examples:\n`;
@@ -166,7 +166,7 @@ function formatResponses(
               example.value,
               null,
               2,
-            ).replace(/\n/g, "\n  ")}\n  \`\`\`\n`;
+            )?.replace(/\n/g, "\n  ")}\n  \`\`\`\n`;
           }
         }
       }
@@ -448,5 +448,5 @@ const sampleDoc: OpenapiDocument = {
   },
 };
 
-// Generate man page
-console.log(generateApiDocs(sampleDoc));
+// // Generate man page
+// console.log(generateApiDocs(sampleDoc));
