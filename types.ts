@@ -54,6 +54,9 @@ export interface PathItem {
 }
 export type Server = { url: string; description?: string };
 export interface OpenapiDocument {
+  tags?: any;
+  components?: any;
+  webhooks?: any;
   openapi?: string;
   servers?: Server[];
   info: {
@@ -66,7 +69,7 @@ export interface OpenapiDocument {
   };
 }
 
-export interface SchemaObject {
+export type SchemaObject = {
   type: string;
   pattern?: string;
   properties?: { [key: string]: SchemaObject };
@@ -76,4 +79,4 @@ export interface SchemaObject {
   description?: string;
   format?: string;
   default?: any;
-}
+} & { [key: string]: any };

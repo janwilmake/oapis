@@ -1,5 +1,9 @@
-import { OpenapiParameterObject, OpenapiResponseObject } from "./getOperations";
-import { SchemaObject, OpenapiDocument } from "./types";
+import { dereferenceSync } from "@trojs/openapi-dereference";
+import {
+  OpenapiParameterObject,
+  OpenapiResponseObject,
+} from "./getOperations.js";
+import { SchemaObject, OpenapiDocument } from "./types.js";
 
 // Helper function to format schema with improved type handling
 function formatSchema(schema: SchemaObject, indent: number = 0): string {

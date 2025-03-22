@@ -1,9 +1,10 @@
+import { dereferenceSync } from "@trojs/openapi-dereference";
 import { load, dump } from "js-yaml";
-import { generateTypeScript } from "./generateTypescript";
-import { deref } from "./deref";
-import { generateApiDocs } from "./summary";
-import { OpenapiDocument, PathItem } from "./types";
-import { getOperations } from "./getOperations";
+import { generateTypeScript } from "./generateTypescript.js";
+import { deref } from "./deref.js";
+import { generateApiDocs } from "./summary.js";
+import { OpenapiDocument, PathItem } from "./types.js";
+import { getOperations } from "./getOperations.js";
 
 const generateOverview = (
   hostname: string,
@@ -240,10 +241,8 @@ const getOpenAPISubset = (openapi: OpenapiDocument, route: string) => {
     }
   }
 
-  const { webhooks, ...rest } = openapi;
-
   return {
-    ...rest,
+    ...openapi,
     paths: matchingPaths,
   };
 };
@@ -386,10 +385,15 @@ export default {
         console.log("OK HERE");
         const subset = getOpenAPISubset(convertedOpenapi, route.slice(1));
 
+        const { tags, webhooks, components, ...dereferenced } = dereferenceSync(
+          subset,
+        ) as OpenapiDocument;
+
+        console.log({ dereferenced: JSON.stringify(dereferenced).length / 5 });
         // TODO; dereference first becuase it may miss things otherwise. now it somehow fails when doing that, it seems some things go missing when dereferencing
 
         //  const dereferenced = await deref(convertedOpenapi, openapiUrl);
-        return new Response(generateApiDocs(subset as OpenapiDocument));
+        return new Response(generateApiDocs(dereferenced as OpenapiDocument));
       }
 
       const operationIds = Object.values(convertedOpenapi.paths)
