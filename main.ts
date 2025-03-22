@@ -283,6 +283,20 @@ const searchOpenapi = async (providerId: string) => {
 
 export default {
   fetch: async (request: Request) => {
+    // Set CORS headers for all responses
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    // Handle OPTIONS requests for CORS
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: corsHeaders,
+      });
+    }
+
     const url = new URL(request.url);
     const accept =
       request.headers.get("accept") || url.searchParams.get("accept");
@@ -377,7 +391,7 @@ export default {
         }
         return new Response(JSON.stringify(operations, undefined, 2), {
           status: 200,
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...corsHeaders },
         });
       }
 
@@ -393,7 +407,9 @@ export default {
         // TODO; dereference first becuase it may miss things otherwise. now it somehow fails when doing that, it seems some things go missing when dereferencing
 
         //  const dereferenced = await deref(convertedOpenapi, openapiUrl);
-        return new Response(generateApiDocs(dereferenced as OpenapiDocument));
+        return new Response(generateApiDocs(dereferenced as OpenapiDocument), {
+          headers: corsHeaders,
+        });
       }
 
       const operationIds = Object.values(convertedOpenapi.paths)
@@ -424,7 +440,7 @@ ${operationIds.map((x) => `- ${x}`).join("\n")}
 
 The routes are:
 ${routes.map((x) => `- ${x}`).join("\n")}`,
-          { status: 404 },
+          { status: 404, headers: corsHeaders },
         );
       }
 
@@ -445,7 +461,7 @@ ${routes.map((x) => `- ${x}`).join("\n")}`,
         );
         return new Response(typescript, {
           status: 200,
-          headers: { "Content-Type": "text/typescript" },
+          headers: { "Content-Type": "text/typescript", ...corsHeaders },
         });
       }
 
@@ -468,7 +484,7 @@ ${routes.map((x) => `- ${x}`).join("\n")}`,
 
         return new Response(javascript, {
           status: 200,
-          headers: { "Content-Type": "text/javascript" },
+          headers: { "Content-Type": "text/javascript", ...corsHeaders },
         });
 
         // Same as ts but types stripped
@@ -492,7 +508,7 @@ ${routes.map((x) => `- ${x}`).join("\n")}`,
 
         return new Response(javascript, {
           status: 200,
-          headers: { "Content-Type": "text/javascript" },
+          headers: { "Content-Type": "text/javascript", ...corsHeaders },
         });
 
         // Same as ts but types stripped
