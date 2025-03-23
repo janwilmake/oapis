@@ -241,10 +241,15 @@ const getOpenAPISubset = (openapi: OpenapiDocument, route: string) => {
     }
   }
 
-  return {
+  const newOpenapi = {
     ...openapi,
     paths: matchingPaths,
   };
+
+  const { tags, webhooks, components, ...dereferenced } = dereferenceSync(
+    newOpenapi,
+  ) as OpenapiDocument;
+  return dereferenced;
 };
 
 const searchOpenapi = async (providerId: string) => {
@@ -356,16 +361,15 @@ export default {
       if (type === "openapi") {
         const subset = getOpenAPISubset(convertedOpenapi, route.slice(1)); // Remove leading slash
 
-        if (accept === "text/yaml") {
-          return new Response(dump(subset), {
+        if (accept === "application/json") {
+          return new Response(JSON.stringify(subset, undefined, 2), {
             status: 200,
-            headers: { "Content-Type": "text/yaml" },
+            headers: { "Content-Type": "application/json" },
           });
         }
-
-        return new Response(JSON.stringify(subset, undefined, 2), {
+        return new Response(dump(subset), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/yaml" },
         });
       }
 
@@ -396,17 +400,7 @@ export default {
       }
 
       if (type === "summary") {
-        console.log("OK HERE");
-        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1));
-
-        const { tags, webhooks, components, ...dereferenced } = dereferenceSync(
-          subset,
-        ) as OpenapiDocument;
-
-        console.log({ dereferenced: JSON.stringify(dereferenced).length / 5 });
-        // TODO; dereference first becuase it may miss things otherwise. now it somehow fails when doing that, it seems some things go missing when dereferencing
-
-        //  const dereferenced = await deref(convertedOpenapi, openapiUrl);
+        const dereferenced = getOpenAPISubset(convertedOpenapi, route.slice(1));
         return new Response(generateApiDocs(dereferenced as OpenapiDocument), {
           headers: corsHeaders,
         });
