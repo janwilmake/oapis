@@ -82,8 +82,8 @@ const generateOverview = (
   output.push(
     ...items.map((item) =>
       isLong
-        ? `- ${item.operationId}${item.summaryPart}`
-        : `- ${item.operationId}${item.pathPart}${item.summaryPart}`,
+        ? `- ${item.operationId} ${item.summaryPart}`
+        : `- ${item.operationId} ${item.pathPart}${item.summaryPart}`,
     ),
   );
 
