@@ -235,9 +235,19 @@ const getOpenAPISubset = (openapi: OpenapiDocument, route: string) => {
 
   // Match by path or operationId
   for (const [path, pathItem] of Object.entries(openapi.paths)) {
-    if (path === route || pathItem?.get?.operationId === route) {
+    if (path === route) {
       matchingPaths[path] = pathItem;
       break;
+    }
+
+    for (let method of ["get", "post", "put", "delete", "patch"]) {
+      if (pathItem?.[method as keyof typeof pathItem]?.operationId === route) {
+        if (!matchingPaths[path]) {
+          matchingPaths[path] = {};
+        }
+        matchingPaths[path][method] =
+          pathItem?.[method as keyof typeof pathItem];
+      }
     }
   }
 
@@ -246,10 +256,14 @@ const getOpenAPISubset = (openapi: OpenapiDocument, route: string) => {
     paths: matchingPaths,
   };
 
-  const { tags, webhooks, components, ...dereferenced } = dereferenceSync(
-    newOpenapi,
-  ) as OpenapiDocument;
-  return dereferenced;
+  try {
+    const { tags, webhooks, components, ...dereferenced } = dereferenceSync(
+      newOpenapi,
+    ) as OpenapiDocument;
+    return dereferenced;
+  } catch {
+    return { error: "Could not deref", ...newOpenapi };
+  }
 };
 
 const searchOpenapi = async (providerId: string) => {
