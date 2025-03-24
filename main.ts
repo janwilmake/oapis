@@ -393,7 +393,7 @@ export default {
         const overview = generateOverview(hostname, subset);
         return new Response(overview, {
           status: 200,
-          headers: { "content-type": "application/json", ...corsHeaders },
+          headers: { "content-type": "text/markdown", ...corsHeaders },
         });
       }
 

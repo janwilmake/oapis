@@ -18,9 +18,3 @@ Types available:
 - "ts": a typescript function to fetch this api
 - "esm": a ecmascript module to fetch this api
 - "cjs": a common js function to fetch this api
-
-# TODO
-
-- `/summary` endpoint is still incomplete. I need:
-  - dereference the API before generating summary
-  - ensure the summary MD never has undefined stuff.
