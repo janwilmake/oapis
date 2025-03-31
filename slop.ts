@@ -75,13 +75,12 @@ export const generateOverview = (
         : `- ${item.operationId} ${item.pathPart}${item.summaryPart}`,
     ),
   );
-
-  const endpointCount = output.length;
+  const endpointCount = output.length - 3;
+  output.unshift("");
 
   output.unshift(
     `Below is an overview of the ${hostname} openapi in simple language. This API contains ${endpointCount} endpoints. For more detailed information of an endpoint, visit https://oapis.org/summary/${hostname}/[idOrRoute]`,
   );
-  output.unshift("");
 
   return output.join("\n");
 };
