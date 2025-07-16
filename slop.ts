@@ -31,6 +31,7 @@ export const generateOverview = (
     operationId: string;
     pathPart: string;
     summaryPart: string;
+    openapiUrl: string;
   }[] = [];
 
   // Process each path and operation
@@ -58,9 +59,13 @@ export const generateOverview = (
           ? ` - ${operation.summary || ""}`
           : "";
 
-        const pathPart = `${method.toUpperCase()} ${path}${queryString}`;
+        const pathPart = `${method.toUpperCase()} ${serverOrigin}${path}${queryString}`;
 
-        items.push({ operationId, pathPart, summaryPart });
+        const openapiUrl = `https://oapis.org/openapi/${hostname}${
+          operationId ? `/` + operationId : path
+        }`;
+
+        items.push({ operationId, pathPart, summaryPart, openapiUrl });
       }
     }
   }
@@ -69,10 +74,11 @@ export const generateOverview = (
   const isLong = JSON.stringify(items).length > 10000 * 5;
 
   output.push(
-    ...items.map((item) =>
-      isLong
-        ? `- ${item.operationId} ${item.summaryPart}`
-        : `- ${item.operationId} ${item.pathPart}${item.summaryPart}`,
+    ...items.map(
+      (item) =>
+        `- ${item.operationId}${isLong ? " " : " " + item.pathPart}${
+          item.summaryPart
+        } ( Spec: ${item.openapiUrl} )`,
     ),
   );
   const endpointCount = output.length - 3;
