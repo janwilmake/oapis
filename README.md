@@ -1,5 +1,10 @@
 # OAPIS - Useful OpenAPI Transformations
 
+> [!IMPORTANT]
+>
+> Moved to https://github.com/janwilmake/openapisearch
+
+
 OAPIS is an API that finds and formats openapis or operations.
 
 Types available:
