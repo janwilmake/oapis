@@ -34,7 +34,10 @@
                 "operations",
                 "ts",
                 "cjs",
-                "esm"
+                "esm",
+                "slop",
+                "llms.txt",
+                "skills"
               ],
               "example": "openapi"
             }

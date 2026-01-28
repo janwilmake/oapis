@@ -5,7 +5,7 @@ import { deref } from "./deref.js";
 import { generateApiDocs } from "./summary.js";
 import { OpenapiDocument, PathItem } from "./types.js";
 import { getOperations } from "./getOperations.js";
-import { generateOverview } from "./slop.js";
+import { generateOverview } from "./generateOverview.js";
 
 /** NB: Not sure on the ratelimit on this, or logging */
 export const convertSwaggerToOpenapi = async (swaggerUrl: string) => {
@@ -109,14 +109,6 @@ export const tryParseYamlToJson = <T = any>(yamlString: string): T | null => {
     return document as T;
   } catch (e: any) {
     return null;
-  }
-};
-
-const tryParseUrl = (url: string) => {
-  try {
-    return new URL(url).toString();
-  } catch (e) {
-    return;
   }
 };
 
@@ -253,6 +245,8 @@ export default {
         "operations",
         "overview",
         "slop",
+        "llms.txt",
+        "skills",
       ].includes(type) ||
       !hostname
     ) {
@@ -305,11 +299,19 @@ export default {
         });
       }
 
-      if (type === "overview" || type === "slop") {
-        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1)); // Remove leading slash
-
+      if (type === "overview" || type === "slop" || type === "llms.txt") {
+        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1));
         const overview = generateOverview(hostname, subset);
         return new Response(overview, {
+          status: 200,
+          headers: { "content-type": "text/markdown", ...corsHeaders },
+        });
+      }
+
+      if (type === "skills") {
+        const subset = getOpenAPISubset(convertedOpenapi, route.slice(1));
+        const skills = generateOverview(hostname, subset, "skills");
+        return new Response(skills, {
           status: 200,
           headers: { "content-type": "text/markdown", ...corsHeaders },
         });

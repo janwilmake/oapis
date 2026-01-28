@@ -40,6 +40,7 @@ export interface Operation {
   description?: string;
   parameters?: Parameter[];
   requestBody?: RequestBody;
+  tags: any;
   responses: {
     [key: string]: any;
   };
